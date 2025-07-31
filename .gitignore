@@ -1,6 +1,7 @@
-.env 
+.env*
 .venv 
 .vscode
+/screenshots/
 __pycache__/
 *.pyc
 *.pyo
