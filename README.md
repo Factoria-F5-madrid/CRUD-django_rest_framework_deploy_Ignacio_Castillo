@@ -5,94 +5,29 @@
 1. [Introducción](#introducción)
 2. [Requisitos Previos](#requisitos-previos)
 3. [Configuración del Proyecto](#configuración-del-proyecto)
-4. [Creación del Modelo](#creación-del-modelo)
-5. [Implementación del Serializador](#implementación-del-serializador)
-6. [Creación de Vistas API](#creación-de-vistas-api)
-7. [Configuración de URLs](#configuración-de-urls)
-8. [Prueba de la API](#prueba-de-la-api)
-9. [Mejores Prácticas](#mejores-prácticas)
-10. [Recursos Adicionales](#recursos-adicionales)
+4. [Dockerization](#dockerization)
+5. [Creación del Modelo](#creación-del-modelo)
+6. [Implementación del Serializador](#implementación-del-serializador)
+7. [Creación de Vistas API](#creación-de-vistas-api)
+8. [Configuración de URLs](#configuración-de-urls)
+9. [Prueba de la API](#prueba-de-la-api)
+10. [Mejores Prácticas](#mejores-prácticas)
+11. [Recursos Adicionales](#recursos-adicionales)
 
 ## Requisitos Previos
 
 - Python 3.8+
 - pip (gestor de paquetes de Python)
-- Conocimientos básicos de Django y APIs RESTful
+- Docker and Docker Compose
+- Workbench instalado para hacer pruebas en local de ser necesario
 
-## Configuración del Proyecto
-
-Crea una carpeta y viaja a ella:
-
-```bash
-mkdir crud_python
-```
+## Clona la Rama `simple-rest-CRUD`
 
 ```bash
-cd crud_python
+git clone -b simple-rest-CRUD --single-branch https://github.com/Factoria-F5-madrid/CRUD-django_rest_framework.git
 ```
 
-*Recuerda iniciar tu entorno virtual, sea que lo hagas con **"uv venv"** o con **"python -m venv venv"** por ejemplo, y actívalo*
-
-1. Instala Django
-
-```bash
-pip install Django
-```
-
-2. Crea un nuevo proyecto Django (colocamos el punto al final para que no nos genere dos carpetas con el mismo nombre):
-
-```bash
-django-admin startproject sistema_libros .
-```
-
-si no colocamos el punto al final, la estructura de carpetas se vería así:
-
-*Se genera otra carpeta con el mismo nombre del project y lo envuelve como una carpeta "madre"*
-
-```plaintext
-
-crud_python/ # Carpeta donde guardas tu proyecto
-│
-├── sistema_libros/ # carpeta generada por no usar el punto
-│   ├──sistema_libros/ # el project de django
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py
-│   └── wsgi.py
-│
-│   ├── manage.py
-```
-
-3. Crea dos aplicaciones:
-
-```bash
-python manage.py startapp libros
-```
-Y nuevamente:
-
-```bash
-python manage.py startapp categorias
-```
-
-4. Instala Django REST Framework:
-
-```bash
-pip install djangorestframework
-```
-
-5. Añade 'rest_framework' y 'libros' a INSTALLED_APPS en settings.py:
-
-```python
-INSTALLED_APPS = [
-    # ...
-    'rest_framework',
-    'libros',
-    'categorias',
-]
-```
-
-### Esta sería tu estructura
+### Estructura de carpetas
 ```plaintext
 
 crud_python/ # Carpeta donde guardas tu proyecto
@@ -132,29 +67,50 @@ crud_python/ # Carpeta donde guardas tu proyecto
 ├── requirements.txt
 ```
 
-## Conexión a la Base de Datos usando .env
 
-Para proteger información sensible como las credenciales de tu base de datos, es recomendable usar un archivo `.env` para almacenar estas configuraciones de manera segura.
+### Al abrir el proyecto:
 
-### Instalación de psycopg2 para usar postgreSQL
-
-1. `psycopg2` es un paquete de Python que permite conectarte a bases de datos PostgreSQL desde tu código Python, de forma fácil y rápida.
-
-
+Crear el entorno virtual
 ```bash
- pip install psycopg2-binary
+python -m venv .venv
 ```
 
-### Instalación de python-dotenv
-
-1. Asegúrate de tener instalado `python-dotenv` para cargar las variables de entorno en tu proyecto:
+Iniciar el entorno virtual
+```bash
+.venv/Scripts/activate
+```
+Instalar las dependencias necesarias
 
 ```bash
-pip install python-dotenv
+ pip install django mysqlclient dotenv django-cors-headers djangorestframework streamlit
 ```
-2. Configuración del archivo .env
 
-    Crea un archivo `.env` en la raíz de tu proyecto y añade las variables de conexión a tu base de datos:
+lleva estas dependecias al requirements.txt (Sí, vamos a sobreescribir 😉):
+```bash
+pip freeze > requirements.txt
+```
+
+## Cuentas necesarias
+ - Crea una cuenta en [railway](https://railway.com/) para tener un servidor gratuito SQL, usa esos datos para llenar tu archivo `.env` sigue los pasos en la web.
+
+ Aquí vas a encontrar las variables públicas, asegúrate de usar los datos de la url pública.
+ ![alt text](./assets/image-12.png)
+
+ Una vez creada tu cuenta y tu base de datos, haz en tu local:
+
+ ```bash
+ python manage.py makemigrations
+ ```
+
+  ```bash
+ python manage.py migrate
+ ```
+
+ - Crea una cuenta en [Docker hub](https://www.docker.com/products/docker-hub/) para subir imágenes de docker públicas - como un github pero de imágenes de docker -
+
+## Configuración del archivo .env
+
+Crea un archivo `.env` en la raíz de tu proyecto y añade las variables de conexión a tu base de datos:
 
 ```env
 DB_NAME=nombre_base_de_datos
@@ -164,430 +120,516 @@ DB_HOST=localhost  # o la dirección de tu servidor de base de datos
 DB_PORT=3306       # o el puerto que uses (por defecto es 3306 para MySQL)
 ```
 
+Y ahora creamos otro archivo  `.env.docker`
+
+```env
+DB_NAME=nombre_base_de_datos
+DB_USER=usuario
+DB_PASSWORD=contraseña
+DB_HOST=db  # debe referenciar al servicio que creadp en docker
+DB_PORT=3306       # o el puerto que uses (por defecto es 3306 para MySQL)
+```
+
 También puedes crear un archivo `.env.example` con la estructura que ves arriba.
 
-3. Modificación de settings.py
 
-    Actualiza settings.py para que Django cargue estas variables de entorno y configure la conexión a la base de datos:
+### Cambia tu Seeting.py
 
 ```python
+"""
+Django settings for sistema_libros project.
+
+Generated by 'django-admin startproject' using Django 5.1.3.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/5.1/topics/settings/
+
+For the full list of settings and their values, see
+https://docs.djangoproject.com/en/5.1/ref/settings/
+"""
+
+from pathlib import Path
 import os
 from dotenv import load_dotenv
+load_dotenv()  # Carga las variables del archivo .env
 
-# Carga las variables de entorno del archivo .env
-load_dotenv()
-[...]
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-##=@&@l44guugi33-ch-eg1sw=&+q^_(+^_ci$3m_po01^#f28'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+
+# Configuración de hosts permitidos
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '.onrender.com',  # Para deployment en Render
+    '.railway.app',   # Para deployment en Railway
+    'django-crud-api-c2zm.onrender.com'
+]
+
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',  # Agregar CORS headers
+    'libros',
+    'categorias',
+]
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Debe estar al principio
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'sistema_libros.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'sistema_libros.wsgi.application'
+
+# Database configuration
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',  # Cambia el motor a postgres
-        'NAME': os.getenv('DB_NAME'),          # Nombre de tu base de datos
-        'USER': os.getenv('DB_USER'),          # Usuario de tu base de datos
-        'PASSWORD': os.getenv('DB_PASSWORD'),  # Contraseña del usuario
-        'HOST': os.getenv('DB_HOST'),          # Dirección del servidor de la base de datos (e.g., 'localhost')
-        'PORT': os.getenv('DB_PORT'),          # Puerto de la base de datos (por defecto es 5432 para postgres)
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': int(os.getenv('DB_PORT', 3306)),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+        },
     }
 }
-```
 
-## Creación del Modelo
-
-En libros/models.py, crea el modelo Libro:
-
-```python
-from django.db import models
-from categorias.models import Categoria
-
-class Libro(models.Model):
-    titulo = models.CharField(max_length=100)
-    autor = models.CharField(max_length=100)
-    isbn = models.CharField(max_length=13)
-    fecha_publicacion = models.DateField()
-    
-    categorias = models.ManyToManyField(Categoria, related_name='categorias')
-
-    def __str__(self):
-        return self.titulo
-```
-
-En categorias/models.py, crea el modelo Libro:
-
-```python
-from django.db import models
-
-class Categoria(models.Model):
-    nombre_categoria = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.nombre_categoria
-```
-
-Ejecuta las migraciones:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-En Django, debes hacer migraciones cada vez que realizas cambios en los modelos de tu aplicación que afectan la estructura de la base de datos. Las migraciones son archivos que Django utiliza para aplicar estos cambios en la base de datos de manera controlada.
-
-## Implementación del Serializador
-
-Crea libros/serializers.py:
-
-```python
-from rest_framework import serializers
-from .models import Libro
-from categorias.models import Categoria
-
-class LibroSerializer(serializers.ModelSerializer):
-    categorias = serializers.PrimaryKeyRelatedField(
-        queryset=Categoria.objects.all(), many=True
-    )
-    class Meta:
-        model = Libro
-        fields = '__all__'
-```
-
-Crea categorias/serializers.py:
-
-```python
-from rest_framework import serializers
-from .models import Categoria
-
-class CategoriaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Categoria
-        fields = ['id','nombre_categoria']
-```
-
-## Creación de Vistas API
-
-En libros/views.py, crea vistas para las operaciones CRUD:
-
-```python
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Libro
-from categorias.models import Categoria
-from .serializer import LibroSerializer
-
-class VistasLibros():
-    @api_view(['GET'])
-    def ListaLibros(request):
-        libros = Libro.objects.all()
-        serializer = LibroSerializer(libros, many=True)
-        return Response(serializer.data)
-    
-    @api_view(['POST'])
-    def CrearLibros(request):
-
-        serializer = LibroSerializer(data = request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @api_view(['GET', 'PUT', 'DELETE'])
-    def DetalleLibros(request, pk):
-        try:
-            libro = Libro.objects.get(pk=pk)
-        except Libro.DoesNotExist:
-            return Response({"error": "Libro no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-        if request.method == 'GET':
-            serializer = LibroSerializer(libro)
-            return Response(serializer.data)
-
-        elif request.method == 'PUT':
-            serializer = LibroSerializer(libro, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        elif request.method == 'DELETE':
-            libro.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-```
-
-En categorias/views.py, crea vistas para las operaciones CRUD:
-
-```python
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Categoria
-from .serializer import CategoriaSerializer
-
-class VistasCategorias():
-    @api_view(['GET'])
-    def ListaCategorias(request):
-        categorias = Categoria.objects.all()
-        serializer = CategoriaSerializer(categorias, many=True)
-        return Response(serializer.data)
-    
-    @api_view(['POST'])
-    def crearCategorias(request):
-        serializer = CategoriaSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @api_view(['GET','PUT', 'DELETE'])
-    def DetalleCategorias(request, pk):
-        try:
-            categoria = Categoria.objects.get(pk=pk)
-        except Categoria.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        if request.method == 'GET':
-            serializer = CategoriaSerializer(categoria)
-            return Response(serializer.data)
-
-        if request.method == 'PUT':
-            serializer = CategoriaSerializer(categoria, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        elif request.method == 'DELETE':
-            categoria.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-```
-
-## Configuración de URLs
-
-1. En libros/urls.py (crea este archivo si no existe):
-
-```python
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('', views.ListaLibros.as_view(), name='lista-libros'),
-    path('<int:pk>', views.DetalleLibro.as_view(), name='detalle-libro'),
-]
-```
-
-O también podría ser de esta manera:
-
-```python
-from django.urls import path
-from .views import VistasLibros
-
-urlpatterns = [
-    path('', VistasLibros.ListaLibros, name="Lista_libros"),
-    path('crear', VistasLibros.CrearLibros, name="crear_libros"),
-    path('<int:pk>', VistasLibros.DetalleLibros, name="detalle_libros"),
-]
-```
-
-Y luego en categorias/urls.py (crea este archivo si no existe):
-
-```python
-from django.urls import path
-from .views import VistasCategorias
-
-urlpatterns = [
-    path('', VistasCategorias.ListaCategorias, name='lista-categoria'),
-    path('crear', VistasCategorias.crearCategorias, name='crear-categoria'),
-    path('<int:pk>', VistasCategorias.DetalleCategorias, name='detalle-categoria'),
-]
-```
-
-2. En sistema_libros/urls.py, incluye las URLs de la aplicación libros:
-
-```python
-from django.contrib import admin
-from django.urls import path, include
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('v1/', include([
-            path('libros/', include('libros.urls')),
-            path('categorias/', include('categorias.urls')),
-    ])),
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",      # React development
+    "http://localhost:5173",      # Vite development
+    "http://localhost:8080",      # Vue development
+    "http://localhost:4200",      # Angular development
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:4200",
 ]
 
-```
-## Crea un front con Streamlit
-
-1. Instala streamlit:
-
-```plaintext
-pip install streamlit
-```
-
-2. Crea un archivo llamado `app.py` e ingresa este código básico:
-
-```python
-import streamlit as st
-import datetime
-import requests
-
-st.sidebar.title('Menú')
-st.sidebar.write('Bienvenidxs a mi librería')
-
-st.title('Bienvenidxs a mi librería')
-st.write('Estos son mis libros desde mi API:')
-
-# Mostrar libros existentes
-response = requests.get('http://127.0.0.1:8000/v1/libros')
-if response.status_code == 200:
-    libros = response.json()
-    for libro in libros:
-        st.write(f"Titulo: {libro['titulo']}")
-        st.write(f"Categorías: {', '.join([str(categoria) for categoria in libro['categorias']])}")
-        if st.button(f"Ver detalle {libro['id']}"):
-            st.write(libro)
-        if st.button(f"Borrar {libro['id']}"):
-            delete_response = requests.delete(f"http://127.0.0.1:8000/v1/libros/{libro['id']}")
-            if delete_response.status_code == 204:
-                st.write(f"Libro {libro['id']} borrado")
-            else:
-                st.write(f"No se pudo borrar el libro {libro['id']}")
+# Configuración para desarrollo (permite todos los orígenes) No recomendado para producción
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
 else:
-    st.write('No se encontraron libros')
+    # En producción, especifica orígenes específicos
+    CORS_ALLOWED_ORIGINS += [
+        "https://tu-frontend.onrender.com",
+        "https://tu-frontend.vercel.app",
+        "https://tu-frontend.netlify.app",
+    ]
 
-# Obtener categorías existentes
-categorias_response = requests.get('http://127.0.0.1:8000/v1/categorias')
-categorias = []
-if categorias_response.status_code == 200:
-    categorias = categorias_response.json()
+# Headers permitidos
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
-# Formulario para crear un nuevo libro
-st.sidebar.title('Crear nuevo libro')
-titulo = st.sidebar.text_input('Título')
-autor = st.sidebar.text_input('Autor')
-isbn = st.sidebar.text_input('ISBN')
-fecha_publicacion = st.sidebar.date_input(
-    'Fecha de publicación', 
-    min_value=datetime.date(1, 1, 1),
-    max_value=datetime.date.today()
-)
-categorias_seleccionadas = st.sidebar.multiselect(
-    'Categorías', [categoria['id'] for categoria in categorias], format_func=lambda id: next(c['nombre_categoria'] for c in categorias if c['id'] == id)
-)
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
-if st.sidebar.button('Crear libro'):
-    nuevo_libro = {
-        'titulo': titulo,
-        'autor': autor,
-        'isbn': isbn,
-        'fecha_publicacion': str(fecha_publicacion),
-        'categorias': categorias_seleccionadas
-    }
-    create_response = requests.post('http://127.0.0.1:8000/v1/libros/crear', json=nuevo_libro)
-    if create_response.status_code == 201:
-        st.sidebar.write('Libro creado exitosamente')
-    else:
-        st.sidebar.write('Error al crear el libro!')
-```
+# Permitir cookies en requests cross-origin
+CORS_ALLOW_CREDENTIALS = True
 
-## Prueba de la API
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
-1. Ejecuta el servidor de desarrollo:
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
 
-```bash
-python manage.py runserver
-```
-2. Ejecuta la aplicación de stremalit
-```bash
-streamlit run app.py
-```
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
 
-3. Utiliza herramientas como curl, Postman o httpie para probar los endpoints de la API:
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-- GET /v1/libros/ (Listar todos los libros)
-- POST /v1/libros/crear/ (Crear un nuevo libro)
-- GET /v1/libros/<id>/ (Obtener un libro)
-- PUT /v1/libros/<id>/ (Actualizar un libro)
-- DELETE /v1/libros/<id>/ (Eliminar un libro)
-
----
-
-- GET /v1/categorias/ (Listar todos los categorias)
-- POST /v1/categorias/crear/ (Crear un nuevo categoria)
-- GET /v1/categorias/<id>/ (Obtener un categoria)
-- PUT /v1/categorias/<id>/ (Actualizar un categoria)
-- DELETE /v1/categorias/<id>/ (Eliminar un categoria)
-
----
-
-### Hacer requests:
-
-Crear Libro:
-
-```json
-{
-    "titulo": "Libro test",
-    "autor": "Autor 1",
-    "isbn": "0000000000000000000",
-    "fecha_publicacion": "1967-05-30",
-    "categorias": [1, 8]
-}
-
-```
-
-Modificar Libro:
-
-```json
-{
-    "titulo": "Libro test",
-    "autor": "Autor 2",
-    "isbn": "0000000000000000000",
-    "fecha_publicacion": "1967-06-30",
-    "categorias": [1, 8]
+# REST Framework configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
 }
 ```
 
-Crear categoria:
+## Dockerización
 
-```json
-{
-    "nombre_categoria": "Thriller"
-}
+### Configuración
+
+1. **Crear un archivo llamado `Dockefile` en la raíz del proyecto:**:
+
+```docker
+# Usa la imagen base de Python 3.12 en su versión "slim" (más liviana)
+# "slim" significa que viene con menos paquetes preinstalados para reducir el tamaño
+FROM python:3.12-slim
+
+# Establece el directorio de trabajo dentro del contenedor como /app
+# Todos los comandos siguientes se ejecutarán desde este directorio
+WORKDIR /app
+
+# Actualiza la lista de paquetes disponibles del sistema operativo
+# && encadena comandos - si uno falla, se detiene la ejecución
+RUN apt-get update \
+# Instala paquetes del sistema operativo necesarios para compilar mysqlclient
+# mysqlclient es una dependencia de Python que requiere compilación en C
+&& apt-get install -y --no-install-recommends \
+    build-essential \              
+    # Conjunto de herramientas de compilación esenciales:
+    # - make: para ejecutar makefiles
+    # - gcc: compilador de C/C++
+    # - libc6-dev: librerías de desarrollo de C
+    # Sin esto, no se pueden compilar extensiones de Python en C
+    gcc \                          
+    # Compilador de C/C++ específicamente
+    # mysqlclient tiene código en C que debe compilarse
+    # Aunque está incluido en build-essential, se especifica explícitamente
+    python3-dev \                  
+    # Headers y archivos de desarrollo de Python
+    # Contiene Python.h y otras cabeceras necesarias
+    # para que las extensiones en C puedan "hablar" con Python
+    # Sin esto, mysqlclient no puede integrarse con Python
+    pkg-config \                   
+    # Herramienta que ayuda a encontrar librerías instaladas
+    # Proporciona información sobre dónde están las librerías
+    # y qué flags de compilación usar
+    # mysqlclient lo usa para encontrar las librerías de MySQL
+    default-libmysqlclient-dev \   
+    # Librerías de desarrollo del cliente MySQL
+    # Contiene archivos .h (headers) y .so (librerías compartidas)
+    # Permite que mysqlclient se comunique con bases de datos MySQL
+    # Es la "interfaz" entre Python y MySQL
+    libmariadb-dev \               
+    # Librerías de desarrollo de MariaDB (fork de MySQL)
+    # MariaDB es compatible con MySQL pero tiene mejores drivers
+    # Proporciona una alternativa más moderna para la conexión
+    # Muchas veces funciona mejor que las librerías nativas de MySQL
+    # Operaciones de limpieza para reducir el tamaño final de la imagen Docker
+    && apt-get clean \                 
+    # Elimina archivos temporales del gestor de paquetes apt
+    # Borra el caché de paquetes descargados (/var/cache/apt/archives/)
+    # Estos archivos ya no son necesarios después de la instalación
+    && rm -rf /var/lib/apt/lists/*     
+    # Elimina las listas de paquetes disponibles
+    # Estas listas se descargan con 'apt-get update'
+    # Ocupan espacio y no son necesarias en el contenedor final
+    # Pueden regenerarse si se necesitan con otro 'apt-get update'
+
+# Copia el archivo requirements.txt desde tu máquina al directorio /app del contenedor
+# El punto (.) significa "directorio actual" dentro del contenedor (/app)
+COPY requirements.txt .
+
+# Actualiza pip a la última versión disponible
+RUN pip install --upgrade pip \
+    # Instala todas las dependencias listadas en requirements.txt
+    # --no-cache-dir evita guardar caché para reducir el tamaño de la imagen
+    && pip install --no-cache-dir -r requirements.txt
+
+# Copia todo el contenido del directorio actual (tu proyecto) al contenedor
+# Primer punto: directorio actual de tu máquina
+# Segundo punto: directorio actual del contenedor (/app)
+COPY . .
+
+# Informa que el contenedor expondrá el puerto 8000
+# Esto es solo documentación - no abre el puerto automáticamente
+EXPOSE 8000
+
+# Comando que se ejecutará cuando el contenedor inicie
+# Inicia el servidor de desarrollo de Django en el puerto 8000
+# 0.0.0.0 permite conexiones desde cualquier IP (necesario para Docker)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 ```
 
-Ejemplo usando curl:
+
+2. **Crear un archivo llamado `docker-compose.yml` en la raíz del proyecto:**:
+
+```docker
+# Especifica la versión del formato de docker-compose a usar
+version: '3.8'
+
+# Define los servicios (contenedores) que componen la aplicación
+services:
+  
+  # Servicio para la aplicación web Django
+  web:
+    # Construye la imagen usando el Dockerfile en el directorio actual (.)
+    build: .
+    
+    # Mapeo de puertos: puerto_host:puerto_contenedor
+    # Puerto 8000 de tu máquina → Puerto 8010 del contenedor
+    ports:
+      - "8000:8010"
+    
+    # Monta volúmenes: directorio_host:directorio_contenedor
+    # El directorio actual (.) se monta en /app dentro del contenedor
+    # Permite ver cambios en tiempo real sin reconstruir la imagen
+    volumes:
+      - .:/app
+    
+    # Variables de entorno que estarán disponibles dentro del contenedor
+    environment:
+      - DEBUG=1                    # Activa el modo debug de Django
+      - DB_NAME=${DB_NAME}         # Nombre de la base de datos (desde .env.docker)
+      - DB_USER=${DB_USER}         # Usuario de la base de datos (desde .env.docker)
+      - DB_PASSWORD=${DB_PASSWORD} # Contraseña de la base de datos (desde .env.docker)
+      - DB_HOST=db                 # Host de la base de datos (nombre del servicio MySQL)
+      - DB_PORT=3306               # Puerto de MySQL (puerto estándar)
+    
+    # Define dependencias: este servicio espera a que 'db' esté disponible
+    depends_on:
+      - db  # El contenedor web esperará a que el contenedor db esté corriendo
+    
+    # Archivo adicional de variables de entorno
+    # Las variables en este archivo estarán disponibles en el contenedor
+    env_file:
+      - .env.docker
+
+  # Servicio para la base de datos MySQL
+  db:
+    # Usa la imagen oficial de MySQL versión 8 desde Docker Hub
+    image: mysql:8
+    
+    # Variables de entorno específicas para configurar MySQL
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}        # Crea automáticamente esta base de datos
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD} # Establece la contraseña del usuario root
+    
+    # Mapeo de puertos para MySQL
+    # Puerto 3307 de tu máquina → Puerto 3306 del contenedor
+    # Usa 3307 para evitar conflictos si tienes MySQL local en 3306
+    ports:
+      - "3307:3306"
+    
+    # Volumen persistente para los datos de MySQL
+    # Los datos se guardan en el volumen 'mysql_data' para que persistan
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+# Define volúmenes con nombre que pueden ser reutilizados
+volumes:
+  # Volumen persistente para almacenar los datos de MySQL
+  # Los datos sobrevivirán aunque se eliminen los contenedores
+  mysql_data:
+```
+
+3. **Construir y ejecutar los contenedores:**
 
 ```bash
-# Listar todos los libros
-curl http://localhost:8000/v1/libros/
-
-# Crear un nuevo libro
-curl -X POST -H "Content-Type: application/json" -d '{"titulo":"Django para Principiantes","autor":"William S. Vincent","isbn":"9781735467207","fecha_publicacion":"2020-12-01"}' http://localhost:8000/v1/libros/
-
-# Obtener un libro (reemplaza <id> con un id real)
-curl http://localhost:8000/v1/libros/<id>/
-
-# Actualizar un libro (reemplaza <id> con un id real)
-curl -X PUT -H "Content-Type: application/json" -d '{"titulo":"Django para Profesionales","autor":"William S. Vincent","isbn":"9781735467214","fecha_publicacion":"2021-06-01"}' http://localhost:8000/v1/libros/<id>/
-
-# Eliminar un libro (reemplaza <id> con un id real)
-curl -X DELETE http://localhost:8000/v1/libros/<id>/
+docker-compose up --build -d
 ```
 
-## Mejores Prácticas
+Este comando construirá la imagen de Docker para el servicio web e iniciará los contenedores `web` y `db`.
 
-1. Utiliza nombres significativos para tus modelos, vistas y URLs.
-2. Implementa autenticación y permisos adecuados para tu API.
-3. Utiliza viewsets y routers para APIs más complejas.
-4. Implementa paginación para conjuntos de datos grandes.
-5. Utiliza filtros y funcionalidad de búsqueda cuando sea apropiado.
-6. Escribe pruebas para tus vistas y serializadores de API.
-7. Documenta tu API utilizando herramientas como Postman.
+4. **Aplicar migraciones:**
 
-## Recursos Adicionales
+Una vez que los contenedores estén ejecutándose, necesitas aplicar las migraciones de la base de datos enotra terminal **NO DETENGAS EL PROCESO DE LOS CONTENEDORES**:
 
-- [Documentación de Django](https://docs.djangoproject.com/es/)
-- [Documentación de Django REST Framework](https://www.django-rest-framework.org/)
-- [Django para APIs (Libro de William S. Vincent)](https://djangoforapis.com/)
-- [Classy Django REST Framework](https://www.cdrf.co/)
-- [Django REST Framework: Relaciones de Serializador](https://www.django-rest-framework.org/api-guide/relations/)
-- [Viewsets en django](https://www.django-rest-framework.org/api-guide/viewsets/)
-- [Rutas en Django](https://www.django-rest-framework.org/api-guide/routers/)
-- [Migración de SQLite3 a MySQL](https://stackoverflow.com/questions/3034910/whats-the-best-way-to-migrate-a-django-db-from-sqlite-to-mysql)
+```bash
+docker-compose exec web python sistema_libros/manage.py migrate
+```
+
+5. **Crear un superusuario (opcional):**
+
+Para acceder al panel de administración de Django:
+
+```bash
+docker-compose exec web python sistema_libros/manage.py createsuperuser
+```
+
+### Comandos útiles de Docker
+
+```bash
+# Ver logs de los contenedores
+docker-compose logs
+
+# Ver logs específicos del servicio web
+docker-compose logs web
+
+# Detener los contenedores
+docker-compose down
+
+# Detener y eliminar volúmenes (cuidado: esto borrará los datos de la base de datos)
+docker-compose down -v
+
+# Reconstruir solo el servicio web
+docker-compose build web
+
+# Ejecutar comandos dentro del contenedor web
+docker-compose exec web python manage.py shell
+```
+
+## Deployment a Docker Hub y Render
+
+### Subir imagen a Docker Hub manualmente
+
+### Desplegar en Docker Hub y Render
+
+Estos son los pasos para construir tu imagen de Docker, subirla a Docker Hub y luego poder usarla en servicios como Render.
+
+1.  **Construir la imagen Docker:**
+    Este comando utiliza el `Dockerfile` en el directorio actual (`.`) para construir una nueva imagen.
+    - `-t alexandrazambrano/django-crud-api:latest`: Asigna un "tag" o etiqueta a la imagen. El formato es `tu-usuario/nombre-de-la-imagen:version`. Esto la prepara para subirla a tu repositorio en Docker Hub.
+
+    ```bash
+    docker build -t alexandrazambrano/django-crud-api:latest .
+    ```
+
+2.  **Hacer login en Docker Hub:**
+    Inicia sesión en tu cuenta de Docker Hub. Necesitarás reemplazar `<username>` con tu nombre de usuario. Es un requisito para poder subir imágenes.
+    **Nota de seguridad:** Es más seguro omitir la contraseña en el comando para que se te solicite de forma interactiva, o usar un token de acceso.
+
+    ```bash
+    docker login -u <username>
+    ```
+
+3.  **Subir la imagen a Docker Hub:**
+    Este comando publica la imagen que construiste en el repositorio de Docker Hub que especificaste con el tag. Una vez subida, estará disponible públicamente (o de forma privada, según la configuración de tu repositorio).
+
+    ```bash
+    docker push alexandrazambrano/django-crud-api:latest
+    ```
+
+4.  **Verificar localmente:**
+    Este comando te permite confirmar que la imagen se ha creado correctamente en tu máquina local.
+    - `docker images`: Lista todas las imágenes en tu sistema.
+    - `| grep alexandrazambrano`: Filtra la lista para mostrar solo las imágenes que contienen "alexandrazambrano" en su nombre. (Nota: en Windows, puedes usar `findstr` en lugar de `grep`).
+
+    ```bash
+    docker images | grep alexandrazambrano
+    ```
+
+### Subir imagen a Render
+1. Creamos un servicio en Render
+
+![crear servicio en render](./assets/image-1.png)
+2. Agregaos la imagen de nuestro dockerhub
+
+![render imagen docker](./assets/image-2.png)
+
+Ve a tu hub en docker hub, para eso, primero en cuentra la imágen con la letra de tu nombre o username, navega a tu perfil y allí verás esta vista:
+
+![alt text](./assets/image-3.png)
+
+entramos a nuestra imagen:
+
+![alt text](./assets/image-4.png)
+
+Buscamos la vista pública:
+
+![alt text](./assets/image-6.png)
+
+copiamos la url:
+
+![alt text](./assets/image-7.png)
+
+Agregamos nuestra imagen:
+
+![alt text](./assets/image-5.png)
+3. configuramos render:
+
+Mantenemos las configuraciones, pero si quieres puedes cambiar el combre:
+
+![alt text](./assets/image-8.png)
+
+Bajamos un poco más, y seleccionamos el plan gratuito:
+
+![alt text](./assets/image-10.png)
+
+Agregamos nuestras variables de entorno:
+
+![alt text](./assets/image-11.png)
+
+## Crea un categorias y libros con curl
+
+Categorias:
+
+![alt text](image.png)
+
+```bash
+{
+    "nombre_categoria": "Drama"
+}
+```
+Libros:
+
+![alt text](image-1.png)
+
+```bash
+{
+  "titulo": "Cien años de soledad",
+  "autor": "Gabriel García Márquez",
+  "isbn": 9788437604958,
+  "fecha_publicacion": "1967-06-05",
+  "categorias": [
+    2
+  ]
+}
+```
