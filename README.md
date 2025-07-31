@@ -96,16 +96,6 @@ pip freeze > requirements.txt
  Aquí vas a encontrar las variables públicas, asegúrate de usar los datos de la url pública.
  ![alt text](./assets/image-12.png)
 
- Una vez creada tu cuenta y tu base de datos, haz en tu local:
-
- ```bash
- python manage.py makemigrations
- ```
-
-  ```bash
- python manage.py migrate
- ```
-
  - Crea una cuenta en [Docker hub](https://www.docker.com/products/docker-hub/) para subir imágenes de docker públicas - como un github pero de imágenes de docker -
 
 ## Configuración del archivo .env
@@ -321,6 +311,16 @@ REST_FRAMEWORK = {
 }
 ```
 
+ Una vez creada tu cuenta y tu base de datos y modificado el settings, haz en tu local:
+
+ ```bash
+ python manage.py makemigrations
+ ```
+
+  ```bash
+ python manage.py migrate
+ ```
+
 ## Dockerización
 
 ### Configuración
@@ -493,7 +493,7 @@ Este comando construirá la imagen de Docker para el servicio web e iniciará lo
 Una vez que los contenedores estén ejecutándose, necesitas aplicar las migraciones de la base de datos enotra terminal **NO DETENGAS EL PROCESO DE LOS CONTENEDORES**:
 
 ```bash
-docker-compose exec web python sistema_libros/manage.py migrate
+docker-compose exec web python manage.py migrate
 ```
 
 5. **Crear un superusuario (opcional):**
@@ -501,7 +501,7 @@ docker-compose exec web python sistema_libros/manage.py migrate
 Para acceder al panel de administración de Django:
 
 ```bash
-docker-compose exec web python sistema_libros/manage.py createsuperuser
+docker-compose exec web python manage.py createsuperuser
 ```
 
 ### Comandos útiles de Docker
