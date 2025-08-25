@@ -1,18 +1,15 @@
-name: Docker Image CI
+name: Build Docker Image and push to Docker Hub
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: #event that will trigger the workflow
+  [workflow_dispatch] #In this case, [workflow_dispatch] means the workflow can be started manually from the GitHub Actions tab in your repository. This is useful when you want to run a workflow on demand, rather than automatically in response to events like pushes or pull requests. It gives you control to execute the workflow whenever you choose, such as for testing or deployment purposes.
 
 jobs:
-
   build:
-
-    runs-on: ubuntu-latest
-
+    runs-on: kali-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4 #Checks out your repository under $GITHUB_WORKSPACE, so your workflow can access it. This is a common first step in workflows, as it ensures that the workflow has access to the project files needed for subsequent steps, such as building, testing, or deploying your application.
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      run: docker build . --file Dockerfile --tag nateto/django-crud-api-rest:$(date +%s)
+    - name: push the Docker image to docker hub
+      run: docker login -u Nateto --password ${{ secrets.DOCKER_HUB_TOKEN }}
+      run: docker push nateto/django-crud-api-rest:$(date +%s)
