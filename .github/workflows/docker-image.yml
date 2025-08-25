@@ -11,5 +11,6 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag nateto/django-crud-api-rest:$(date +%s)
     - name: push the Docker image to docker hub
-      run: docker login -u Nateto --password ${{ secrets.DOCKER_HUB_TOKEN }}
-      run: docker push nateto/django-crud-api-rest:$(date +%s)
+      run: 
+        docker login -u Nateto --password ${{ secrets.DOCKER_HUB_TOKEN }}
+        docker push nateto/django-crud-api-rest:$(date +%s)
