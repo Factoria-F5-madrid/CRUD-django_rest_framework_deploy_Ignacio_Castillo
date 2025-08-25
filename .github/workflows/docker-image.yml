@@ -5,7 +5,7 @@ on: #event that will trigger the workflow
 
 jobs:
   build:
-    runs-on: kali-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4 #Checks out your repository under $GITHUB_WORKSPACE, so your workflow can access it. This is a common first step in workflows, as it ensures that the workflow has access to the project files needed for subsequent steps, such as building, testing, or deploying your application.
     - name: Build the Docker image
