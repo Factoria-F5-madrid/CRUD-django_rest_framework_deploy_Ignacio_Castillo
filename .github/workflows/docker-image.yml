@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4 #Checks out your repository under $GITHUB_WORKSPACE, so your workflow can access it. This is a common first step in workflows, as it ensures that the workflow has access to the project files needed for subsequent steps, such as building, testing, or deploying your application.
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag nateto/django-crud-api-rest:$(date +%s)
-    - name: push the Docker image to docker hub
+    - name: Log in to Docker Hub and build/push image
       run: |
-        docker login -u Nateto --password ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker push nateto/django-crud-api-rest:$(date +%s)
+        IMAGE_TAG=nateto/django-crud-api-rest:$(date +%s)
+        echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u Nateto --password-stdin
+        docker build . --file Dockerfile --tag $IMAGE_TAG
+        docker push $IMAGE_TAG
