@@ -11,6 +11,6 @@ jobs:
     - name: Log in to Docker Hub and build/push image
       run: |
         IMAGE_TAG=nateto/django-crud-api-rest:$(date +%s)
-        echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u Nateto --password-stdin
+        echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u nateto --password-stdin
         docker build . --file Dockerfile --tag $IMAGE_TAG
         docker push $IMAGE_TAG
